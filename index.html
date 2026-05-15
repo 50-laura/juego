@@ -1,0 +1,776 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Juego de Laura · Modo Salón</title>
+<style>
+:root{
+  --black:#090909; --panel:#171717; --panel2:#202020; --line:rgba(255,255,255,.14); --line2:rgba(255,255,255,.28);
+  --white:#f7f7f4; --muted:rgba(247,247,244,.62); --faint:rgba(247,247,244,.38); --silver:#c8c8c8;
+  --ok:#00ff72; --ok-bg:linear-gradient(135deg, rgba(0,255,114,.98), rgba(0,176,75,.90) 48%, rgba(0,110,48,.86)); --bad:#ff1f1f; --bad-bg:linear-gradient(135deg, rgba(255,31,31,.98), rgba(210,24,24,.92) 48%, rgba(120,12,18,.86)); --pick:#2f6bff; --pick-bg:linear-gradient(135deg, rgba(47,107,255,.94), rgba(25,58,180,.78)); --pick2:#b561ff; --pick2-bg:linear-gradient(135deg, rgba(181,97,255,.90), rgba(102,46,190,.74));
+  --serif: Georgia, 'Times New Roman', serif; --sans: 'Aptos','Segoe UI',Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--black);color:var(--white);font-family:var(--sans);}
+body{background:radial-gradient(circle at 50% 0%, rgba(255,255,255,.10), transparent 34%), linear-gradient(180deg,#0d0d0d,#050505);}
+body:before{content:"";position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 260 260' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E");opacity:.04;pointer-events:none}
+button,input{font:inherit}
+button{cursor:pointer}
+button:disabled{cursor:not-allowed;opacity:.42}
+.app{height:100vh;width:100vw;padding:clamp(12px,1.2vw,22px);display:grid;place-items:center;}
+.stage{width:min(96vw,1780px);height:min(92vh,980px);border:1px solid var(--line2);background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.025));box-shadow:0 28px 90px rgba(0,0,0,.58);position:relative;overflow:hidden;}
+.stage:before{content:"";position:absolute;inset:-30%;background:radial-gradient(circle at 50% 18%,rgba(255,255,255,.13),transparent 33%);pointer-events:none}
+.screen{position:absolute;inset:0;display:none;z-index:1;}
+.screen.active{display:grid;animation:fade .32s ease both}
+@keyframes fade{from{opacity:0;transform:scale(.992)}to{opacity:1;transform:scale(1)}}
+.kicker{font-size:clamp(10px,.9vw,14px);letter-spacing:.34em;text-transform:uppercase;color:var(--faint);font-weight:700}
+.serif{font-family:var(--serif);font-style:italic;font-weight:400;letter-spacing:-.035em}
+.btn{border:1px solid var(--line2);background:rgba(255,255,255,.045);color:var(--white);padding:clamp(11px,.9vw,16px) clamp(18px,1.4vw,28px);text-transform:uppercase;letter-spacing:.18em;font-size:clamp(10px,.8vw,14px);font-weight:800;min-height:46px;transition:.2s ease}
+.btn:hover:not(:disabled){background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.42)}
+.btn.primary{background:var(--white);color:#111;border-color:var(--white);box-shadow:0 0 46px rgba(255,255,255,.20)}
+.btn.action{background:linear-gradient(135deg,#ffffff,#dcdcdc);color:#080808;border-color:#fff;box-shadow:0 0 40px rgba(255,255,255,.22)}
+.btn.ghost{border-color:rgba(255,255,255,.14);color:var(--muted)}
+/* HOME */
+.home{padding:clamp(18px,2vw,34px);grid-template-rows:minmax(0,1fr) auto;align-items:center;justify-items:center;gap:12px}
+.homeGrid{width:min(1360px,86vw);display:grid;grid-template-columns:1fr 1fr;grid-template-areas:'hero hero' 'teams game' 'actions actions';gap:clamp(14px,1.35vw,24px);align-items:stretch}
+.hero{grid-area:hero;text-align:center;margin-bottom:clamp(0px,.5vw,8px)}
+.hero .kicker{margin-bottom:clamp(8px,.9vw,16px)}
+h1{margin:0;font-size:clamp(48px,6vw,104px);line-height:.92}
+.lead{margin:clamp(8px,.8vw,14px) auto 0;max-width:760px;color:var(--muted);font-family:var(--serif);font-style:italic;font-size:clamp(20px,1.85vw,32px);line-height:1.15}
+.configCard{border:1px solid var(--line);background:rgba(255,255,255,.035);padding:clamp(16px,1.35vw,24px)}
+.configCard:first-of-type{grid-area:teams}.configCard:nth-of-type(2){grid-area:game}
+.cardTitle{margin:0 0 14px;font-size:clamp(10px,.82vw,14px);letter-spacing:.32em;text-transform:uppercase;color:var(--faint);font-weight:800}
+.field{display:grid;gap:6px;margin-bottom:clamp(10px,.8vw,14px)}
+label{font-size:clamp(10px,.78vw,13px);letter-spacing:.24em;text-transform:uppercase;color:var(--faint);font-weight:800}
+input{width:100%;background:rgba(255,255,255,.055);border:1px solid var(--line);color:var(--white);padding:clamp(10px,.8vw,14px) clamp(13px,1vw,18px);font-family:var(--serif);font-style:italic;font-size:clamp(22px,1.65vw,30px);outline:none}
+input:focus{border-color:rgba(255,255,255,.44)}
+.duration{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.duration button{padding-inline:8px}
+.duration button.active{background:var(--white);color:#111;border-color:var(--white)}
+.microcopy{margin:16px 0 0;color:var(--muted);font-size:clamp(12px,.86vw,14px);line-height:1.45}
+.homeActions{grid-area:actions;display:flex;justify-content:center;gap:14px;margin-top:0;flex-wrap:wrap;position:relative;z-index:2}
+.keys{position:static;text-align:center;color:var(--faint);font-size:clamp(9px,.7vw,12px);letter-spacing:.16em;text-transform:uppercase;font-weight:800;max-width:90vw;align-self:end}
+/* GAME */
+.game{grid-template-rows:auto 1fr auto}
+.scorebar{height:clamp(82px,10vh,116px);display:grid;grid-template-columns:1fr 1.15fr 1fr;border-bottom:1px solid var(--line);background:rgba(255,255,255,.018)}
+.teamBox{display:flex;align-items:center;gap:clamp(12px,1.2vw,24px);padding:0 clamp(18px,2vw,34px);min-width:0;position:relative;overflow:hidden;transition:background .26s ease, box-shadow .26s ease, filter .26s ease}
+.teamBox.right{justify-content:flex-end;text-align:right}
+.teamName{font-family:var(--serif);font-style:italic;font-size:clamp(25px,2.5vw,48px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:68%}
+.teamScore{font-size:clamp(48px,5.3vw,92px);line-height:1;color:rgba(255,255,255,.82);font-weight:300;min-width:1ch;text-align:center}
+.teamBox.active .teamName{color:#fff;text-shadow:0 0 18px rgba(255,255,255,.86),0 0 42px rgba(255,255,255,.36)}
+.teamBox.active .teamScore{color:#fff;text-shadow:0 0 22px rgba(255,255,255,.58)}
+.teamBox.active{background:linear-gradient(90deg,rgba(255,255,255,.20),rgba(255,255,255,.07) 54%,transparent);box-shadow:inset 0 -6px 0 #fff,inset 0 0 0 1px rgba(255,255,255,.18),0 0 52px rgba(255,255,255,.16);filter:brightness(1.12)}
+.teamBox.right.active{background:linear-gradient(270deg,rgba(255,255,255,.20),rgba(255,255,255,.07) 54%,transparent);box-shadow:inset 0 -6px 0 #fff,inset 0 0 0 1px rgba(255,255,255,.18),0 0 52px rgba(255,255,255,.16)}
+.teamBox.active::before{content:'EN JUEGO';position:absolute;top:10px;left:clamp(18px,2vw,34px);font-size:clamp(8px,.65vw,11px);letter-spacing:.22em;text-transform:uppercase;font-weight:900;color:#050505;background:#fff;padding:5px 9px;box-shadow:0 0 22px rgba(255,255,255,.34)}
+.teamBox.right.active::before{left:auto;right:clamp(18px,2vw,34px)}
+.centerStatus{display:grid;place-items:center;text-align:center;border-left:1px solid var(--line);border-right:1px solid var(--line);padding:8px 18px}
+.progress{font-size:clamp(11px,1vw,17px);letter-spacing:.34em;text-transform:uppercase;color:var(--faint);font-weight:800}
+.turn{margin-top:6px;font-family:var(--serif);font-style:italic;font-size:clamp(25px,2.5vw,47px);line-height:1.05}
+.board{display:grid;grid-template-rows:auto 1fr;align-items:start;padding:clamp(22px,2.4vw,46px) clamp(34px,4vw,78px) clamp(10px,1vw,18px);gap:clamp(16px,2vw,34px)}
+.questionWrap{text-align:center;display:grid;gap:clamp(8px,.8vw,14px)}
+.questionLabel{font-size:clamp(10px,.88vw,15px);letter-spacing:.34em;text-transform:uppercase;color:var(--faint);font-weight:800}
+.question{margin:0 auto;max-width:1350px;font-family:var(--serif);font-style:italic;font-size:clamp(44px,5.4vw,98px);line-height:1.03;font-weight:400;letter-spacing:-.04em}
+.options{display:grid;grid-template-columns:1fr 1fr;gap:clamp(16px,1.8vw,30px);align-content:center}
+.option{border:1px solid var(--line);background:rgba(255,255,255,.04);min-height:clamp(86px,12vh,138px);padding:clamp(14px,1.4vw,24px);display:grid;grid-template-columns:clamp(54px,4.7vw,78px) 1fr auto;gap:clamp(14px,1.4vw,24px);align-items:center;color:var(--white);text-align:left;transition:.18s ease;position:relative}
+.option:hover:not(:disabled){background:rgba(255,255,255,.075);border-color:rgba(255,255,255,.34)}
+.letter{height:clamp(52px,4.6vw,76px);width:clamp(52px,4.6vw,76px);display:grid;place-items:center;border:1px solid var(--line);font-family:var(--serif);font-style:italic;font-size:clamp(30px,3vw,52px);color:rgba(255,255,255,.75)}
+.optionText{font-size:clamp(24px,2.2vw,42px);font-weight:650;line-height:1.1}
+.badge{font-size:clamp(9px,.75vw,12px);letter-spacing:.18em;text-transform:uppercase;color:var(--faint);font-weight:900;opacity:0;white-space:nowrap}
+.option.selected{background:var(--pick-bg);border-color:#8fb1ff;box-shadow:0 0 0 2px rgba(143,177,255,.44),0 0 38px rgba(47,107,255,.36),0 12px 38px rgba(0,0,0,.30)}
+.option.selected .letter{border-color:rgba(255,255,255,.76);background:rgba(255,255,255,.15);color:#fff}
+.option.selected .optionText{color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.38);font-weight:850}
+.option.selected .badge{opacity:1;color:#fff;text-shadow:0 0 10px rgba(255,255,255,.32)}
+.option.selectedB{background:var(--pick2-bg);border-color:#d8a9ff;box-shadow:0 0 0 2px rgba(216,169,255,.44),0 0 44px rgba(181,97,255,.42),0 12px 38px rgba(0,0,0,.30)}
+.option.selectedB .optionText{color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.38);font-weight:850}
+.option.correct{background:var(--ok-bg);border-color:#b6ffd0;box-shadow:0 0 0 3px rgba(182,255,208,.58),0 0 58px rgba(0,255,114,.55),0 0 110px rgba(0,255,114,.20),0 18px 46px rgba(0,0,0,.38);filter:saturate(1.18) brightness(1.08)}
+.option.correct .letter{border-color:rgba(255,255,255,.90);background:rgba(255,255,255,.20);color:#fff;text-shadow:0 0 12px rgba(255,255,255,.42)}
+.option.correct .optionText{color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.45);font-weight:850}
+.option.correct .badge{opacity:1;color:#fff;text-shadow:0 0 12px rgba(255,255,255,.38)}
+.option.correct .badge::before{content:'✓ ';font-size:1.1em}
+.option.wrong{background:var(--bad-bg);border-color:#ffc0bd;box-shadow:0 0 0 3px rgba(255,192,189,.50),0 0 58px rgba(255,31,31,.52),0 0 110px rgba(255,31,31,.18),0 18px 46px rgba(0,0,0,.38);filter:saturate(1.20) brightness(1.08)}
+.option.wrong .letter{border-color:rgba(255,255,255,.82);background:rgba(255,255,255,.18);color:#fff;text-shadow:0 0 12px rgba(255,255,255,.34)}
+.option.wrong .optionText{color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.48);font-weight:850}
+.option.wrong .badge{opacity:1;color:#fff;text-shadow:0 0 12px rgba(255,255,255,.32)}
+.option.wrong .badge::before{content:'✕ ';font-size:1.1em}
+.option.dim{opacity:.58}
+.controlbar{height:clamp(70px,9vh,104px);border-top:1px solid var(--line);display:grid;grid-template-columns:1fr auto 1fr;gap:16px;align-items:center;padding:0 clamp(18px,2vw,34px);background:rgba(255,255,255,.018)}
+.help{font-size:clamp(10px,.8vw,13px);letter-spacing:.16em;text-transform:uppercase;color:var(--faint);font-weight:800;white-space:nowrap}
+.statusText{text-align:center;color:var(--muted);font-size:clamp(13px,1vw,18px);font-weight:700;line-height:1.25}
+.statusText strong{color:var(--white)}
+.statusText.point{color:#d9ffe5;text-shadow:0 0 18px rgba(0,255,114,.30)}
+.statusText.miss{color:#ffe1df;text-shadow:0 0 18px rgba(255,31,31,.25)}
+.statusText.pick{color:#eaf0ff;text-shadow:0 0 16px rgba(47,107,255,.22)}
+
+.actions{display:flex;justify-content:flex-end;gap:12px}
+/* END */
+.end{place-items:center;text-align:center;padding:clamp(30px,4vw,70px)}
+.endContent{width:min(1100px,86vw)}
+.end h2{margin:0;font-size:clamp(56px,7vw,120px);line-height:.98}
+.winner{margin:clamp(14px,1.4vw,24px) auto 0;font-family:var(--serif);font-style:italic;font-size:clamp(25px,2.4vw,44px);color:var(--muted)}
+.finalScore{margin:clamp(26px,3vw,48px) auto 0;display:grid;grid-template-columns:1fr 1fr;gap:clamp(16px,2vw,32px);max-width:900px}
+.finalCard{border:1px solid var(--line);background:rgba(255,255,255,.04);padding:clamp(22px,2vw,36px)}
+.finalTeam{font-family:var(--serif);font-style:italic;font-size:clamp(28px,2.7vw,50px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.finalPts{font-size:clamp(60px,7vw,122px);line-height:1;margin-top:8px;font-weight:300}
+.endActions{display:flex;justify-content:center;gap:14px;margin-top:clamp(26px,2.5vw,44px)}
+/* small height */
+@media (max-height:760px){
+ .stage{height:96vh;width:98vw} .app{padding:8px} h1{font-size:clamp(48px,6.3vw,92px)} .lead{font-size:clamp(18px,1.8vw,28px)}
+ .home{padding:12px 18px;gap:8px} .homeGrid{gap:12px;width:min(1320px,88vw)} .hero .kicker{margin-bottom:6px} h1{font-size:72px} .lead{font-size:24px;margin-top:8px} .configCard{padding:14px} input{font-size:23px;padding:9px 13px} .btn{min-height:40px;padding:9px 16px} .keys{font-size:10px}
+ .scorebar{height:82px} .turn{font-size:30px} .teamName{font-size:32px} .teamScore{font-size:58px}
+ .board{padding:18px 54px 10px;gap:14px} .question{font-size:62px} .options{gap:16px} .option{min-height:86px;padding:14px 18px} .optionText{font-size:28px} .letter{width:54px;height:54px;font-size:34px}
+ .controlbar{height:68px} .btn{min-height:42px;padding:10px 16px}
+}
+@media (max-width:1050px){.homeGrid{grid-template-columns:1fr}.scorebar{grid-template-columns:1fr 1fr}.centerStatus{grid-column:1/-1;grid-row:1;order:-1}}
+</style>
+</head>
+<body>
+<div class="app">
+  <main class="stage" aria-live="polite">
+    <section class="screen home active" id="homeScreen">
+      <div class="homeGrid">
+        <header class="hero">
+          <div class="kicker">Juego de salón · Blanco & negro</div>
+          <h1 class="serif">¿Cuánto conocen a Laura?</h1>
+          <p class="lead">Elegí equipo, respondé y revelá. Que gane quien mejor la conozca.</p>
+        </header>
+        <section class="configCard" aria-label="Configurar equipos">
+          <h2 class="cardTitle">Equipos</h2>
+          <div class="field"><label for="teamAInput">Equipo claro</label><input id="teamAInput" value="Equipo Blanco" /></div>
+          <div class="field"><label for="teamBInput">Equipo oscuro</label><input id="teamBInput" value="Equipo Negro" /></div>
+        </section>
+        <section class="configCard" aria-label="Configurar juego">
+          <h2 class="cardTitle">Cantidad de preguntas</h2>
+          <div class="duration" id="durationBtns">
+            <button class="btn" data-count="15">Rápido</button>
+            <button class="btn active" data-count="20">Ideal</button>
+            <button class="btn" data-count="25">Largo</button>
+            <button class="btn" data-count="all">Todo</button>
+          </div>
+          <p class="microcopy">Las opciones se ven desde el inicio. Marcás la respuesta del equipo y después revelás para validar el punto.</p>
+        </section>
+        <div class="homeActions"><button class="btn primary" id="startBtn">Comenzar</button><button class="btn" id="fullBtn">Pantalla completa</button></div>
+      </div>
+      <div class="keys">1-4 / A-D seleccionar · R revelar · Enter siguiente · F pantalla completa</div>
+    </section>
+
+    <section class="screen game" id="gameScreen">
+      <header class="scorebar">
+        <div class="teamBox" id="teamABox"><div class="teamName" id="teamAName">Equipo Blanco</div><div class="teamScore" id="teamAScore">0</div></div>
+        <div class="centerStatus"><div><div class="progress" id="progressText">Pregunta 1/20</div><div class="turn" id="turnText">Turno: Equipo Blanco</div></div></div>
+        <div class="teamBox right" id="teamBBox"><div class="teamScore" id="teamBScore">0</div><div class="teamName" id="teamBName">Equipo Negro</div></div>
+      </header>
+      <section class="board">
+        <div class="questionWrap"><div class="questionLabel" id="phaseLabel">Elegí una opción</div><h2 class="question" id="questionText"></h2></div>
+        <div class="options" id="options"></div>
+      </section>
+      <footer class="controlbar">
+        <div class="help" id="helperKeys">1-4 seleccionar · R revelar</div>
+        <div class="statusText" id="statusText">Seleccioná la respuesta que diga el equipo.</div>
+        <div class="actions"><button class="btn ghost" id="homeBtn">Inicio</button><button class="btn" id="revealBtn" disabled>Revelar</button><button class="btn primary" id="nextBtn" disabled>Siguiente</button></div>
+      </footer>
+    </section>
+
+    <section class="screen end" id="endScreen">
+      <div class="endContent">
+        <div class="kicker">Resultado final</div>
+        <h2 class="serif" id="winnerTitle">Ganó Equipo Blanco</h2>
+        <p class="winner" id="winnerCopy">Claramente vinieron a jugar, no solo a mirar.</p>
+        <div class="finalScore">
+          <article class="finalCard"><div class="finalTeam" id="finalAName">Equipo Blanco</div><div class="finalPts" id="finalAScore">0</div></article>
+          <article class="finalCard"><div class="finalTeam" id="finalBName">Equipo Negro</div><div class="finalPts" id="finalBScore">0</div></article>
+        </div>
+        <div class="endActions"><button class="btn primary" id="againBtn">Jugar revancha</button><button class="btn" id="endHomeBtn">Volver al inicio</button></div>
+      </div>
+    </section>
+  </main>
+</div>
+<script>
+const preguntasBase = [
+  {
+    "pregunta": "¿Cuál fue su primer trabajo?",
+    "correcta": "Niñera",
+    "opciones": [
+      "Niñera",
+      "Vendedora en una boutique",
+      "Recepcionista en una oficina",
+      "Cajera en un comercio"
+    ]
+  },
+  {
+    "pregunta": "¿Qué destino sueña visitar?",
+    "correcta": "Italia",
+    "opciones": [
+      "Italia",
+      "España",
+      "Grecia",
+      "Portugal"
+    ]
+  },
+  {
+    "pregunta": "¿Cuál es su comida más amada?",
+    "correcta": "Pescado",
+    "opciones": [
+      "Pescado",
+      "Pastas caseras",
+      "Sushi",
+      "Mariscos"
+    ]
+  },
+  {
+    "pregunta": "¿Qué objeto atesora desde la infancia?",
+    "correcta": "Un pañuelito",
+    "opciones": [
+      "Un pañuelito",
+      "Una carta guardada",
+      "Un anillito",
+      "Una muñeca de trapo"
+    ]
+  },
+  {
+    "pregunta": "¿Qué música no soporta?",
+    "correcta": "Heavy metal",
+    "opciones": [
+      "Heavy metal",
+      "Reggaetón",
+      "Cumbia villera",
+      "Electrónica pesada"
+    ]
+  },
+  {
+    "pregunta": "¿Cuál fue su apodo de chica?",
+    "correcta": "Flaca Escopeta",
+    "opciones": [
+      "Flaca Escopeta",
+      "La Flaca",
+      "Laurita",
+      "Lala"
+    ]
+  },
+  {
+    "pregunta": "¿Qué travesura hizo en la secundaria?",
+    "correcta": "Robar en un kiosco",
+    "opciones": [
+      "Robar en un kiosco",
+      "Ratearse del colegio",
+      "Esconder el boletín",
+      "Escaparse de una clase"
+    ]
+  },
+  {
+    "pregunta": "¿Cuál es su ritual de domingo?",
+    "correcta": "Tomar vino mirando una serie",
+    "opciones": [
+      "Tomar vino mirando una serie",
+      "Tomar mate mirando una película",
+      "Hacer siesta y ver una serie",
+      "Almorzar en familia y mirar tele"
+    ]
+  },
+  {
+    "pregunta": "¿Qué fue lo más loco que hizo por amor?",
+    "correcta": "Volver por amor",
+    "opciones": [
+      "Volver por amor",
+      "Mudarse por amor",
+      "Viajar por amor",
+      "Perdonar por amor"
+    ]
+  },
+  {
+    "pregunta": "¿Cuál es su peor miedo?",
+    "correcta": "Quedarse muda",
+    "opciones": [
+      "Quedarse muda",
+      "Quedarse ciega",
+      "Quedarse sola",
+      "Quedarse encerrada"
+    ]
+  },
+  {
+    "pregunta": "¿Cuál fue su viaje favorito?",
+    "correcta": "Escalar la montaña",
+    "opciones": [
+      "Escalar la montaña",
+      "Cruzar la cordillera",
+      "Hacer una escapada al sur",
+      "Pasar unos días frente al mar"
+    ]
+  },
+  {
+    "pregunta": "¿Qué mascota tuvo de niña?",
+    "correcta": "Un ternero",
+    "opciones": [
+      "Un ternero",
+      "Un cordero",
+      "Un pato",
+      "Un conejo"
+    ]
+  },
+  {
+    "pregunta": "¿Cuál fue su peor cita?",
+    "correcta": "Una cita con un médico enano",
+    "opciones": [
+      "Una cita con un médico enano",
+      "Una cita con alguien que no habló en toda la noche",
+      "Una cita con alguien que llegó una hora tarde",
+      "Una cita con alguien demasiado agrandado"
+    ]
+  },
+  {
+    "pregunta": "¿Qué quería ser de chica?",
+    "correcta": "Bancaria",
+    "opciones": [
+      "Bancaria",
+      "Maestra",
+      "Azafata",
+      "Doctora"
+    ]
+  },
+  {
+    "pregunta": "¿Qué aprendió en su último cumpleaños?",
+    "correcta": "Que siempre está la gente que quiero",
+    "opciones": [
+      "Que siempre está la gente que quiero",
+      "Que celebrar con los suyos vale la pena",
+      "Que no hace falta tanto para pasarla bien",
+      "Que los mejores momentos son los más simples"
+    ]
+  },
+  {
+    "pregunta": "¿Cuál es su peor hábito?",
+    "correcta": "Fumar (por suerte, ya no)",
+    "opciones": [
+      "Fumar (por suerte, ya no)",
+      "Dormirse muy tarde",
+      "Dejar todo para último momento",
+      "Querer hacer todo sola"
+    ]
+  },
+  {
+    "pregunta": "¿Qué idioma le gustaría hablar fluido?",
+    "correcta": "Inglés",
+    "opciones": [
+      "Inglés",
+      "Italiano",
+      "Francés",
+      "Portugués"
+    ]
+  },
+  {
+    "pregunta": "¿Cuál es su color favorito?",
+    "correcta": "Rojo",
+    "opciones": [
+      "Rojo",
+      "Bordó",
+      "Negro",
+      "Blanco"
+    ]
+  },
+  {
+    "pregunta": "¿Qué persona la inspiró más en la vida?",
+    "correcta": "Papá",
+    "opciones": [
+      "Papá",
+      "Mamá",
+      "Su abuela",
+      "Una maestra de la infancia"
+    ]
+  },
+  {
+    "pregunta": "¿Qué haría si ganara la lotería?",
+    "correcta": "Invitaría a todos sus amigos a viajar",
+    "opciones": [
+      "Invitaría a todos sus amigos a viajar",
+      "Ayudaría a toda la familia",
+      "Compraría una casa en la montaña",
+      "Se iría de viaje por varios meses"
+    ]
+  },
+  {
+    "pregunta": "¿Qué es lo que más valora de sus amigos?",
+    "correcta": "El amor",
+    "opciones": [
+      "El amor",
+      "La lealtad",
+      "La sinceridad",
+      "La compañía"
+    ]
+  },
+  {
+    "pregunta": "¿Qué cosa nunca haría?",
+    "correcta": "Dejar de pintarse la boca de rojo",
+    "opciones": [
+      "Dejar de pintarse la boca de rojo",
+      "Salir sin despedirse",
+      "Perdonar una traición",
+      "Ir a una fiesta sin arreglarse"
+    ]
+  },
+  {
+    "pregunta": "¿Cuál es su recuerdo más gracioso?",
+    "correcta": "Vestirse de camello",
+    "opciones": [
+      "Vestirse de camello",
+      "Caerse en una fiesta",
+      "Perderse en un desfile",
+      "Hacer un papelón en la escuela"
+    ]
+  },
+  {
+    "pregunta": "¿Qué la hace enojar instantáneamente?",
+    "correcta": "El desorden",
+    "opciones": [
+      "El desorden",
+      "La impuntualidad",
+      "La mentira",
+      "La falta de respeto"
+    ]
+  },
+  {
+    "pregunta": "¿Cuál es su postre infaltable?",
+    "correcta": "Mandarinas de postre",
+    "opciones": [
+      "Mandarinas de postre",
+      "Frutillas con crema",
+      "Helado de crema",
+      "Flan casero"
+    ]
+  },
+  {
+    "pregunta": "¿Cuál es su palabra favorita?",
+    "correcta": "Lucha",
+    "opciones": [
+      "Lucha",
+      "Amor",
+      "Familia",
+      "Libertad"
+    ]
+  },
+  {
+    "pregunta": "¿Qué no perdona?",
+    "correcta": "Que falte el vino",
+    "opciones": [
+      "Que falte el vino",
+      "Que falten las copas",
+      "Que se termine el hielo",
+      "Que corten la música temprano"
+    ]
+  },
+  {
+    "pregunta": "¿Qué sueño tiene pendiente?",
+    "correcta": "Tener una casa en una montaña",
+    "opciones": [
+      "Tener una casa en una montaña",
+      "Tener una casa cerca del mar",
+      "Viajar por Italia",
+      "Aprender a manejar"
+    ]
+  },
+  {
+    "pregunta": "¿Cuál es su película de cabecera?",
+    "correcta": "El sexto sentido",
+    "opciones": [
+      "El sexto sentido",
+      "Ghost",
+      "Mujer bonita",
+      "Los puentes de Madison"
+    ]
+  },
+  {
+    "pregunta": "¿Qué cambio hizo en su vida del que está orgullosa?",
+    "correcta": "Haberse venido del pueblo",
+    "opciones": [
+      "Haberse venido del pueblo",
+      "Haberse animado a empezar de nuevo",
+      "Haberse construido una vida propia",
+      "Haberse jugado por su familia"
+    ]
+  },
+  {
+    "pregunta": "¿Qué lección aprendió a los 40?",
+    "correcta": "Que se puede volver a ser madre",
+    "opciones": [
+      "Que se puede volver a ser madre",
+      "Que nunca es tarde para empezar",
+      "Que hay que disfrutar más el presente",
+      "Que todo puede cambiar de un día para el otro"
+    ]
+  },
+  {
+    "pregunta": "¿Cuál es su mejor chiste?",
+    "correcta": "El de la cereza",
+    "opciones": [
+      "El de la cereza",
+      "El del loro",
+      "El del gallego",
+      "El de Jaimito"
+    ]
+  },
+  {
+    "pregunta": "¿Qué recuerdo de su infancia siempre cuenta?",
+    "correcta": "El del tero",
+    "opciones": [
+      "El del tero",
+      "El de la bicicleta",
+      "El de la escuela rural",
+      "El del río"
+    ]
+  },
+  {
+    "pregunta": "¿Qué habilidad secreta tiene?",
+    "correcta": "Ser una súper anfitriona",
+    "opciones": [
+      "Ser una súper anfitriona",
+      "Organizar cualquier reunión en minutos",
+      "Detectar todo al instante",
+      "Recordar detalles mínimos de todos"
+    ]
+  },
+  {
+    "pregunta": "¿Qué cosa le gustaría aprender mañana?",
+    "correcta": "Manejar",
+    "opciones": [
+      "Manejar",
+      "Hablar italiano",
+      "Tocar el piano",
+      "Tejer"
+    ]
+  },
+  {
+    "pregunta": "¿Qué lugar de la casa es su favorito?",
+    "correcta": "La cocina",
+    "opciones": [
+      "La cocina",
+      "El living",
+      "El patio",
+      "El dormitorio"
+    ]
+  },
+  {
+    "pregunta": "¿Qué canción define su vida?",
+    "correcta": "Víctimas del Cielo — Las Pelotas",
+    "opciones": [
+      "Víctimas del Cielo — Las Pelotas",
+      "Persiana Americana — Soda Stereo",
+      "Seminare — Serú Girán",
+      "Brillas — León Larregui"
+    ]
+  },
+  {
+    "pregunta": "¿Qué haría en su día perfecto?",
+    "correcta": "Desayuno, gym, ducha, caminar y comer",
+    "opciones": [
+      "Desayuno, gym, ducha, caminar y comer",
+      "Dormir hasta tarde, almorzar rico, siesta y película",
+      "Mate, compras, charla y cena",
+      "Sol, caminata, amigos y vino"
+    ]
+  },
+  {
+    "pregunta": "¿Qué frase repite siempre?",
+    "correcta": "La única lucha que se pierde es la que se abandona",
+    "opciones": [
+      "La única lucha que se pierde es la que se abandona",
+      "Todo pasa por algo",
+      "El que quiere, puede",
+      "Al mal tiempo, buena cara"
+    ]
+  },
+  {
+    "pregunta": "¿Qué haría si fuera invisible un día?",
+    "correcta": "Espiar a sus hijos",
+    "opciones": [
+      "Espiar a sus hijos",
+      "Escuchar conversaciones ajenas",
+      "Mirar qué hace la gente sin que la vean",
+      "Entrar gratis a todos lados"
+    ]
+  }
+];
+const $ = (id) => document.getElementById(id);
+const shuffle = (arr) => { const a=[...arr]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a; };
+const esc = (s) => String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
+
+let chosenCount = 20;
+let questions = [];
+let bonusPool = [];
+let idx = 0;
+let turn = 0;
+let scores = [0,0];
+let teams = ['Equipo Blanco','Equipo Negro'];
+let selected = null;
+let revealed = false;
+let pointAdded = false;
+let tiebreak = false;
+let bonusSelections = [null, null];
+let bonusStep = 0;
+
+function screen(name){ ['homeScreen','gameScreen','endScreen'].forEach(id=>$(id).classList.remove('active')); $(name).classList.add('active'); }
+function setFull(){ const el=document.documentElement; if(!document.fullscreenElement) el.requestFullscreen?.(); }
+function pickCount(v){ chosenCount = v === 'all' ? preguntasBase.length : Number(v); document.querySelectorAll('#durationBtns button').forEach(b=>b.classList.toggle('active', b.dataset.count===v)); }
+document.querySelectorAll('#durationBtns button').forEach(b=>b.addEventListener('click',()=>pickCount(b.dataset.count)));
+
+function start(){
+  teams = [($('teamAInput').value.trim() || 'Equipo Blanco'), ($('teamBInput').value.trim() || 'Equipo Negro')];
+  const shuffled = shuffle(preguntasBase).map(q => ({...q, opciones: shuffle(q.opciones)}));
+  const count = Math.min(chosenCount, shuffled.length);
+  questions = shuffled.slice(0, count);
+  bonusPool = shuffled.slice(count);
+  if (!bonusPool.length) bonusPool = shuffle(preguntasBase).map(q => ({...q, opciones: shuffle(q.opciones)}));
+  idx=0; turn=0; scores=[0,0]; selected=null; revealed=false; pointAdded=false; tiebreak=false; bonusSelections=[null,null]; bonusStep=0;
+  $('teamAName').textContent = teams[0]; $('teamBName').textContent = teams[1];
+  $('nextBtn').textContent = 'Siguiente';
+  renderQuestion(); screen('gameScreen');
+}
+function updateHeader(){
+  $('teamAScore').textContent = scores[0]; $('teamBScore').textContent = scores[1];
+  $('progressText').textContent = tiebreak ? 'Desempate · Bonus' : `Pregunta ${idx+1}/${questions.length}`;
+  $('turnText').textContent = tiebreak ? `Responde ${teams[bonusStep]}` : `Responde ${teams[turn]}`;
+  $('teamABox').classList.toggle('active', tiebreak ? bonusStep===0 : turn===0); $('teamBBox').classList.toggle('active', tiebreak ? bonusStep===1 : turn===1);
+}
+function renderQuestion(){
+  selected=null; revealed=false; pointAdded=false; tiebreak=false; updateHeader();
+  const q=questions[idx]; $('questionText').textContent=q.pregunta; $('phaseLabel').textContent='Elegí una opción';
+  $('statusText').className='statusText'; $('statusText').textContent='Seleccioná la respuesta que diga el equipo.'; $('revealBtn').disabled=true; $('revealBtn').classList.remove('action'); $('nextBtn').disabled=true; $('nextBtn').textContent='Siguiente';
+  drawOptions(q);
+}
+function drawOptions(q){
+  $('options').innerHTML='';
+  q.opciones.forEach((opt,i)=>{
+    const btn=document.createElement('button'); btn.className='option'; btn.type='button'; btn.dataset.value=opt; btn.dataset.index=i;
+    btn.innerHTML=`<span class="letter">${String.fromCharCode(65+i)}</span><span class="optionText">${esc(opt)}</span><span class="badge"></span>`;
+    btn.addEventListener('click',()=> tiebreak ? selectBonusOption(i) : selectOption(i)); $('options').appendChild(btn);
+  });
+}
+function selectOption(i){
+  if(revealed) return;
+  selected=i;
+  const q=questions[idx];
+  document.querySelectorAll('.option').forEach((b,n)=>{b.classList.toggle('selected', n===i); b.classList.remove('selectedB'); b.querySelector('.badge').textContent = n===i ? 'Elegida' : '';});
+  $('revealBtn').disabled=false; $('revealBtn').classList.add('action');
+  $('statusText').className='statusText pick'; $('statusText').innerHTML=`Elegida: <strong>${String.fromCharCode(65+i)} · ${esc(q.opciones[i])}</strong>. Ahora revelá.`;
+}
+function reveal(){
+  if(tiebreak) return revealBonus();
+  if(selected===null || revealed){ if(selected===null){ $('statusText').className='statusText miss'; $('statusText').textContent='Primero seleccioná la respuesta del equipo.'; } return; }
+  revealed=true;
+  const q=questions[idx]; const selectedValue=q.opciones[selected]; const ok=selectedValue===q.correcta;
+  document.querySelectorAll('.option').forEach((b,n)=>{
+    const val=b.dataset.value;
+    b.disabled=true; b.classList.remove('selected','selectedB');
+    const badge=b.querySelector('.badge');
+    if(val===q.correcta){ b.classList.add('correct'); badge.textContent='Correcta'; }
+    else if(n===selected){ b.classList.add('wrong'); badge.textContent='Incorrecta'; }
+    else { b.classList.add('dim'); badge.textContent=''; }
+  });
+  if(ok && !pointAdded){ scores[turn]++; pointAdded=true; $('phaseLabel').textContent='Correcto'; $('statusText').className='statusText point'; $('statusText').innerHTML=`✓ Punto para <strong>${esc(teams[turn])}</strong>.`; }
+  else { $('phaseLabel').textContent='Respuesta revelada'; $('statusText').className='statusText miss'; $('statusText').innerHTML=`✕ No suma. La correcta era <strong>${esc(q.correcta)}</strong>.`; }
+  updateHeader(); $('revealBtn').disabled=true; $('revealBtn').classList.remove('action'); $('nextBtn').disabled=false; $('nextBtn').focus();
+}
+function next(){
+  if(tiebreak){
+    if(!revealed) return;
+    if(scores[0] !== scores[1]) return showFinal();
+    return renderBonusQuestion();
+  }
+  if(!revealed) return;
+  if(idx >= questions.length-1) return finish();
+  idx++; turn = 1 - turn; renderQuestion();
+}
+function finish(){
+  if(scores[0]===scores[1]) return startTiebreaker();
+  showFinal();
+}
+function nextBonus(){
+  if(!bonusPool.length) bonusPool = shuffle(preguntasBase).map(q => ({...q, opciones: shuffle(q.opciones)}));
+  return bonusPool.shift();
+}
+function startTiebreaker(){
+  tiebreak = true; revealed = false; bonusStep = 0; bonusSelections=[null,null]; selected=null;
+  $('nextBtn').textContent = 'Otra bonus';
+  renderBonusQuestion(true);
+}
+function renderBonusQuestion(first=false){
+  tiebreak=true; revealed=false; bonusStep=0; bonusSelections=[null,null]; selected=null; pointAdded=false;
+  const q = nextBonus(); questions[idx] = q;
+  updateHeader();
+  $('questionText').textContent = q.pregunta;
+  $('phaseLabel').textContent = first ? 'Empate · pregunta bonus' : 'Nueva pregunta bonus';
+  $('statusText').className='statusText'; $('statusText').innerHTML = first ? 'Empate. Seleccioná primero la respuesta de <strong>'+esc(teams[0])+'</strong>.' : 'Siguen empatados. Seleccioná la respuesta de <strong>'+esc(teams[0])+'</strong>.';
+  $('revealBtn').disabled=true; $('revealBtn').classList.remove('action'); $('nextBtn').disabled=true; $('nextBtn').textContent='Otra bonus';
+  drawOptions(q);
+  screen('gameScreen');
+}
+function selectBonusOption(i){
+  if(revealed) return;
+  bonusSelections[bonusStep]=i;
+  const q=questions[idx];
+  if(bonusStep===0){
+    bonusStep=1;
+    updateHeader();
+    $('statusText').className='statusText pick'; $('statusText').innerHTML=`${esc(teams[0])}: <strong>${String.fromCharCode(65+i)} · ${esc(q.opciones[i])}</strong>. Ahora ${esc(teams[1])}.`;
+  } else {
+    $('statusText').className='statusText pick'; $('statusText').innerHTML=`Los dos equipos ya respondieron. Ahora revelá el desempate.`;
+    $('revealBtn').disabled=false; $('revealBtn').classList.add('action');
+  }
+  paintBonusSelections();
+}
+function paintBonusSelections(){
+  document.querySelectorAll('.option').forEach((b,n)=>{
+    b.classList.remove('selected','selectedB');
+    const a = bonusSelections[0]===n;
+    const c = bonusSelections[1]===n;
+    const badge=b.querySelector('.badge');
+    if(a && c){ b.classList.add('selected'); badge.textContent='Ambos'; }
+    else if(a){ b.classList.add('selected'); badge.textContent=teams[0]; }
+    else if(c){ b.classList.add('selectedB'); badge.textContent=teams[1]; }
+    else { badge.textContent=''; }
+  });
+}
+function revealBonus(){
+  if(revealed) return;
+  if(bonusSelections[0]===null || bonusSelections[1]===null){ $('statusText').className='statusText miss'; $('statusText').textContent='Primero necesitás cargar la respuesta de los dos equipos.'; return; }
+  revealed=true;
+  const q=questions[idx];
+  const okA = q.opciones[bonusSelections[0]] === q.correcta;
+  const okB = q.opciones[bonusSelections[1]] === q.correcta;
+  document.querySelectorAll('.option').forEach((b,n)=>{
+    const val=b.dataset.value; const badge=b.querySelector('.badge');
+    b.disabled=true; b.classList.remove('selected','selectedB');
+    if(val===q.correcta){ b.classList.add('correct'); badge.textContent='Correcta'; }
+    else if(n===bonusSelections[0] || n===bonusSelections[1]){ b.classList.add('wrong'); badge.textContent=(n===bonusSelections[0]&&n===bonusSelections[1])?'Ambos':'Incorrecta'; }
+    else { b.classList.add('dim'); badge.textContent=''; }
+  });
+  $('revealBtn').disabled=true; $('revealBtn').classList.remove('action'); $('nextBtn').disabled=false;
+  if(okA && !okB){ scores[0]++; $('phaseLabel').textContent='Desempate definido'; $('statusText').className='statusText point'; $('statusText').innerHTML=`✓ Punto para <strong>${esc(teams[0])}</strong>. Gana el desempate.`; $('nextBtn').textContent='Ver resultado'; }
+  else if(okB && !okA){ scores[1]++; $('phaseLabel').textContent='Desempate definido'; $('statusText').className='statusText point'; $('statusText').innerHTML=`✓ Punto para <strong>${esc(teams[1])}</strong>. Gana el desempate.`; $('nextBtn').textContent='Ver resultado'; }
+  else if(okA && okB){ $('phaseLabel').textContent='Siguen empatados'; $('statusText').innerHTML=`Los dos acertaron. La correcta era <strong>${esc(q.correcta)}</strong>. Vamos con otra bonus.`; $('nextBtn').textContent='Otra bonus'; }
+  else { $('phaseLabel').textContent='Siguen empatados'; $('statusText').innerHTML=`Nadie acertó. La correcta era <strong>${esc(q.correcta)}</strong>. Vamos con otra bonus.`; $('nextBtn').textContent='Otra bonus'; }
+  updateHeader(); $('nextBtn').focus();
+}
+function showFinal(){
+  $('finalAName').textContent=teams[0]; $('finalBName').textContent=teams[1]; $('finalAScore').textContent=scores[0]; $('finalBScore').textContent=scores[1];
+  if(scores[0]===scores[1]){ $('winnerTitle').textContent='Empate'; $('winnerCopy').textContent='Resultado abierto. Laura tendrá que decidir el desempate en vivo.'; }
+  else { const w=scores[0]>scores[1]?0:1; $('winnerTitle').textContent=`Ganó ${teams[w]}`; $('winnerCopy').textContent=tiebreak ? 'Definieron el desempate y se quedaron con la victoria.' : 'Claramente vinieron a jugar, no solo a mirar.'; }
+  screen('endScreen');
+}
+function goHome(){ screen('homeScreen'); }
+$('startBtn').addEventListener('click',start); $('fullBtn').addEventListener('click',setFull); $('revealBtn').addEventListener('click',reveal); $('nextBtn').addEventListener('click',next);
+$('homeBtn').addEventListener('click',goHome); $('againBtn').addEventListener('click',start); $('endHomeBtn').addEventListener('click',goHome);
+document.addEventListener('keydown',(e)=>{
+  const key=e.key.toLowerCase();
+  if(key==='f'){ setFull(); return; }
+  if($('gameScreen').classList.contains('active')){
+    if(['1','2','3','4'].includes(key)) tiebreak ? selectBonusOption(Number(key)-1) : selectOption(Number(key)-1);
+    if(['a','b','c','d'].includes(key)) tiebreak ? selectBonusOption(key.charCodeAt(0)-97) : selectOption(key.charCodeAt(0)-97);
+    if(key==='r') reveal();
+    if((key==='enter'||key===' ') && revealed){ e.preventDefault(); next(); }
+    if(key==='backspace' && !revealed){
+      if(tiebreak){ bonusSelections=[null,null]; bonusStep=0; updateHeader(); paintBonusSelections(); $('revealBtn').disabled=true; $('revealBtn').classList.remove('action'); $('statusText').innerHTML=`Seleccioná la respuesta de <strong>${esc(teams[0])}</strong>.`; }
+      else { selected=null; document.querySelectorAll('.option').forEach(b=>{b.classList.remove('selected','selectedB'); b.querySelector('.badge').textContent='';}); $('revealBtn').disabled=true; $('revealBtn').classList.remove('action'); $('statusText').textContent='Seleccioná la respuesta que diga el equipo.'; }
+    }
+  }
+});</script>
+</body>
+</html>
